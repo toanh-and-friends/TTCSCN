@@ -1,5 +1,6 @@
 import fnmatch
 import os
+import sys
 import ntpath
 import string
 import glob
@@ -7,6 +8,7 @@ import cv2
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
+import argparse
 from keras.preprocessing.sequence import pad_sequences
 from keras.layers import Dense, LSTM, Reshape, BatchNormalization, Input, Conv2D, MaxPool2D, Lambda, Bidirectional
 from keras.models import Model
@@ -17,6 +19,21 @@ from keras.callbacks import ModelCheckpoint
 
 char_list = string.ascii_letters + string.digits
 
+parser = argparse.ArgumentParser(description="Text Recognize")
+parser.add_argument('--train_folder_path', dest='train_folder_path')
+parser.add_argument('--valid_folder_path', dest='valid_folder_path')
+parser.add_argument('--output_test_folder_path', dest='output_test_folder_path')
+parser.add_argument('--max_train_files', dest='max_train_files')
+parser.add_argument('--mode', dest='mode')
+parser.add_argument('--model_file_path', dest='model_file_path')
+_args = parser.parse_args()
+train_folder_path_arg = _args.train_folder_path
+valid_folder_path_arg = _args.valid_folder_path
+output_test_folder_path_arg = _args.output_test_folder_path
+max_train_files_arg = int(_args.max_train_files) or 15000
+mode_arg = _args.mode or "train"
+model_file_path_arg = _args.model_file_path
+
 
 def ctc_lambda_func(args):
     y_pred, labels, input_length, label_length = args
@@ -24,23 +41,37 @@ def ctc_lambda_func(args):
     return K.ctc_batch_cost(labels, y_pred, input_length, label_length)
 
 
+def encode_to_labels(text):
+    digit_list = []
+    for index, char in enumerate(text):
+        try:
+            digit_list.append(char_list.index(char))
+        except:
+            print(char)
+
+    return digit_list
+
+
 class TextRecognize(object):
-    def __init__(self, train_folder_path, valid_folder_path, output_test_folder_path, max_train_files=0,
+    def __init__(self, train_folder_path, valid_folder_path, output_test_folder_path, model_file_path,
+                 max_train_files=10,
                  max_label_length=0, mode="train"):
+
         self.train_folder_path = train_folder_path
         self.valid_folder_path = valid_folder_path
-        self.output_test_folder_path =output_test_folder_path
+        self.output_test_folder_path = output_test_folder_path
         self.max_label_length = max_label_length
         self.train_image_array = []
         self.train_text_array = []
         self.train_input_length = []
         self.train_label_length = []
         self.origin_text_array = []
+
         self.valid_image_array = []
         self.valid_text_array = []
         self.valid_input_length = []
         self.valid_label_length = []
-        self.valid_origin_text = []
+        self.valid_origin_text_array = []
         self.max_train_files = max_train_files
         self.train_files_count = 0
         self.model = None
@@ -48,8 +79,17 @@ class TextRecognize(object):
         self.act_model = None
         self.train_padded_txt = None
         self.valid_padded_txt = None
-        self.init_data(self.mode)
+        self.model_file_path = model_file_path
+        self.init_data()
         self.init_model()
+        self.run_function()
+
+    def run_function(self):
+        print("run_function")
+        if "train" in self.mode:
+            self.train()
+        if "predict" in self.mode:
+            self.predict()
 
     def pre_process_image(self, file_path):
         filename = ntpath.basename(file_path)
@@ -76,7 +116,8 @@ class TextRecognize(object):
         # compute maximum length of the text
         if len(text) > self.max_label_length:
             self.max_label_length = len(text)
-
+        # print(text, image)
+        # print(text)
         return {
             "text": text,
             "image": image
@@ -84,56 +125,47 @@ class TextRecognize(object):
 
     def init_data(self):
         try:
+            print("init_data")
             path = "{}/*.jpg"
 
-            if "train" in self.mode:
+            if self.train_folder_path:
                 path = path.format(self.train_folder_path)
                 train_files = glob.glob(path)
-                for train_file in range(train_files):
+                # print(type(train_files))
+                for train_file in train_files:
+
                     preprocessed_image = self.pre_process_image(train_file)
-                    self.origin_text_array.append(preprocessed_image["text"])
-                    self.train_label_length.append(len(preprocessed_image["text"]))
-                    self.train_input_length.append(31)
-                    self.train_image_array.append(preprocessed_image["image"])
-                    self.train_text_array.append(self.encode_to_labels(preprocessed_image["text"]))
-                    if self.train_files_count == self.max_train_files:
-                        break
-                    self.train_files_count += 1
-            if "valid" in self.mode:
+                    if preprocessed_image:
+                        # print('train', preprocessed_image["text"])
+                        self.origin_text_array.append(preprocessed_image["text"])
+                        self.train_label_length.append(len(preprocessed_image["text"]))
+                        self.train_input_length.append(31)
+                        self.train_image_array.append(preprocessed_image["image"])
+                        self.train_text_array.append(encode_to_labels(preprocessed_image["text"]))
+                        # if self.train_files_count == self.max_train_files:
+                        #     break
+                        # self.train_files_count += 1
+            if self.valid_folder_path:
                 path = path.format(self.valid_folder_path)
                 valid_files = glob.glob(path)
-                for valid_file in range(valid_files):
+                for valid_file in valid_files:
                     preprocessed_image = self.pre_process_image(valid_file)
-                    self.valid_origin_text_array.append(preprocessed_image["text"])
-                    self.valid_train_label_length.append(len(preprocessed_image["text"]))
-                    self.vaild_train_input_length.append(31)
-                    self.valid_train_image_array.append(preprocessed_image["image"])
-                    self.vaild_train_text_array.append(self.encode_to_labels(preprocessed_image["text"]))
+
+                    if preprocessed_image:
+
+                        self.valid_origin_text_array.append(preprocessed_image["text"])
+                        self.valid_label_length.append(len(preprocessed_image["text"]))
+                        self.valid_input_length.append(31)
+                        self.valid_image_array.append(preprocessed_image["image"])
+                        self.valid_text_array.append(encode_to_labels(preprocessed_image["text"] or ''))
+
         except:
-            return
-
-    @staticmethod
-    def encode_to_labels(self, text):
-        digit_list = []
-        for index, char in enumerate(text):
-            try:
-                digit_list.append(char_list.index(char))
-            except:
-                print(char)
-            finally:
-                print("finally")
-
-        return digit_list
+            print("Unexpected error:", sys.exc_info()[0])
+            raise
 
     def init_model(self):
-        self.train_padded_txt = pad_sequences(self.train_text_array,
-                                              maxlen=self.max_label_length,
-                                              padding='post',
-                                              value=len(char_list))
-        self.valid_padded_txt = pad_sequences(self.vaild_train_text_array,
-                                              maxlen=self.max_label_length,
-                                              padding='post',
-                                              value=len(char_list))
+        print("init_model")
+
         # input with shape of height=32 and width=128
         inputs = Input(shape=(32, 128, 1))
 
@@ -189,32 +221,58 @@ class TextRecognize(object):
         }
 
     def train(self):
-        filepath = "../models/best_model.hdf5"
+        print("train")
+        filepath = self.model_file_path
         checkpoint = ModelCheckpoint(filepath=filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='auto')
         callbacks_list = [checkpoint]
-
+        # print(self.train_input_length)
+        # print(self.train_label_length)
+        # print(self.valid_input_length)
+        # print(self.valid_label_length)
+        self.train_padded_txt = pad_sequences(self.train_text_array,
+                                              maxlen=self.max_label_length,
+                                              padding='post',
+                                              value=len(char_list))
+        self.valid_padded_txt = pad_sequences(self.valid_text_array,
+                                              maxlen=self.max_label_length,
+                                              padding='post',
+                                              value=len(char_list))
         training_img = np.array(self.train_image_array)
+
         train_input_length = np.array(self.train_input_length)
+
         train_label_length = np.array(self.train_label_length)
 
         valid_img = np.array(self.valid_image_array)
         valid_input_length = np.array(self.valid_input_length)
         valid_label_length = np.array(self.valid_label_length)
-
         batch_size = 256
         epochs = 30
-        self.model.fit(x=[training_img, self.train_padded_txt, train_input_length, train_label_length],
-                       y=np.zeros(len(training_img)), batch_size=batch_size, epochs=epochs, validation_data=(
-            [valid_img, self.valid_padded_txt, valid_input_length, valid_label_length], [np.zeros(len(valid_img))]),
+        # print(training_img)
+
+        self.model.fit(x=[training_img,
+                          self.train_padded_txt,
+                          train_input_length,
+                          train_label_length],
+                       y=np.zeros(len(training_img)),
+                       batch_size=batch_size,
+                       epochs=epochs,
+                       validation_data=([valid_img,
+                                         self.valid_padded_txt,
+                                         valid_input_length,
+                                         valid_label_length],
+                                        [np.zeros(len(valid_img))]),
                        verbose=1, callbacks=callbacks_list)
 
         return
 
     def predict(self):
-        self.act_model.load_weights('../models/best_model.hdf5')
+        self.act_model.load_weights(self.model_file_path)
 
         # predict outputs on validation images
-        prediction = self.act_model.predict(self.valid_image_array)
+        valid_img = np.array(self.valid_image_array)
+
+        prediction = self.act_model.predict(valid_img[:10])
 
         # use CTC decoder
         out = K.get_value(K.ctc_decode(prediction,
@@ -223,12 +281,27 @@ class TextRecognize(object):
 
         # see the results
         index = 0
+        predict_results = []
         for x in out:
-            print("original_text =  ", self.valid_origin_text_array[index])
-            print("predicted text = ", end='')
+            predict_text = ""
             for p in x:
                 if int(p) != -1:
-                    print(char_list[int(p)], end='')
-            print('\n')
+                    predict_text += char_list[int(p)]
+            predict_results.append({
+                "origin_text": self.valid_origin_text_array[index],
+                "predict_text": predict_text
+            })
+            # print("original_text =  ", self.valid_origin_text_array[index])
+            # print("predicted text = ", end='')
+
             index += 1
-        return
+        print(predict_results)
+        return predict_results
+
+
+tr = TextRecognize(train_folder_path=train_folder_path_arg or None,
+                   valid_folder_path=valid_folder_path_arg,
+                   max_train_files=max_train_files_arg,
+                   mode=mode_arg,
+                   output_test_folder_path=output_test_folder_path_arg,
+                   model_file_path=model_file_path_arg)
