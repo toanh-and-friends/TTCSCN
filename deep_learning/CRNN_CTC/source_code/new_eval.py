@@ -34,6 +34,14 @@ max_train_files_arg = int(_args.max_train_files) or 15000
 mode_arg = _args.mode or "train"
 model_file_path_arg = _args.model_file_path
 
+print("train_folder_path_arg",train_folder_path_arg)
+print("valid_folder_path_arg",valid_folder_path_arg)
+print("output_test_folder_path_arg",output_test_folder_path_arg)
+print("max_train_files_arg",max_train_files_arg)
+print("mode_arg",mode_arg)
+print("model_file_path_arg",model_file_path_arg)
+
+
 
 def ctc_lambda_func(args):
     y_pred, labels, input_length, label_length = args
@@ -127,10 +135,12 @@ class TextRecognize(object):
         try:
             print("init_data")
             path = "{}/*.jpg"
+            # path = path.format(self.train_folder_path)
             flag = 0
             if self.train_folder_path:
-                for root, dirnames, filenames in os.walk(path):
+                for root, dirnames, filenames in os.walk(self.train_folder_path):
                     for train_file in fnmatch.filter(filenames, '*.jpg'):
+                        train_file = os.path.join(root, train_file)
                         preprocessed_image = self.pre_process_image(train_file)
                         if preprocessed_image:
                             # print('train', preprocessed_image["text"])
