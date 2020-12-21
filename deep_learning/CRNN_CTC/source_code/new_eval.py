@@ -127,24 +127,42 @@ class TextRecognize(object):
         try:
             print("init_data")
             path = "{}/*.jpg"
-
+            flag = 0
             if self.train_folder_path:
-                path = path.format(self.train_folder_path)
-                train_files = glob.glob(path)
-                # print(type(train_files))
-                for train_file in train_files:
+                for root, dirnames, filenames in os.walk(path):
+                    for train_file in fnmatch.filter(filenames, '*.jpg'):
+                        preprocessed_image = self.pre_process_image(train_file)
+                        if preprocessed_image:
+                            # print('train', preprocessed_image["text"])
+                            self.origin_text_array.append(preprocessed_image["text"])
+                            self.train_label_length.append(len(preprocessed_image["text"]))
+                            self.train_input_length.append(31)
+                            self.train_image_array.append(preprocessed_image["image"])
+                            self.train_text_array.append(encode_to_labels(preprocessed_image["text"]))
+                            if self.train_files_count == self.max_train_files:
+                                flag = 1
+                                break
+                            self.train_files_count += 1
+                    if flag == 1:
+                        break
 
-                    preprocessed_image = self.pre_process_image(train_file)
-                    if preprocessed_image:
-                        # print('train', preprocessed_image["text"])
-                        self.origin_text_array.append(preprocessed_image["text"])
-                        self.train_label_length.append(len(preprocessed_image["text"]))
-                        self.train_input_length.append(31)
-                        self.train_image_array.append(preprocessed_image["image"])
-                        self.train_text_array.append(encode_to_labels(preprocessed_image["text"]))
-                        # if self.train_files_count == self.max_train_files:
-                        #     break
-                        # self.train_files_count += 1
+            #     path = path.format(self.train_folder_path)
+            #     train_files = glob.glob(path)
+            #     # print(type(train_files))
+            #     for train_file in train_files:
+            #
+            #         preprocessed_image = self.pre_process_image(train_file)
+            #         if preprocessed_image:
+            #             # print('train', preprocessed_image["text"])
+            #             self.origin_text_array.append(preprocessed_image["text"])
+            #             self.train_label_length.append(len(preprocessed_image["text"]))
+            #             self.train_input_length.append(31)
+            #             self.train_image_array.append(preprocessed_image["image"])
+            #             self.train_text_array.append(encode_to_labels(preprocessed_image["text"]))
+            #             # if self.train_files_count == self.max_train_files:
+            #             #     break
+            #             # self.train_files_count += 1
+
             if self.valid_folder_path:
                 path = path.format(self.valid_folder_path)
                 valid_files = glob.glob(path)
@@ -152,7 +170,6 @@ class TextRecognize(object):
                     preprocessed_image = self.pre_process_image(valid_file)
 
                     if preprocessed_image:
-
                         self.valid_origin_text_array.append(preprocessed_image["text"])
                         self.valid_label_length.append(len(preprocessed_image["text"]))
                         self.valid_input_length.append(31)
