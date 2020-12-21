@@ -143,3 +143,6 @@ models/
 .index
 checkpoint
 .data-000000-of-00001
+
+# IDE
+.idea/
