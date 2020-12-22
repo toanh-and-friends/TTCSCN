@@ -26,18 +26,14 @@ parser.add_argument('--output_test_folder_path', dest='output_test_folder_path')
 parser.add_argument('--max_train_files', dest='max_train_files')
 parser.add_argument('--mode', dest='mode')
 parser.add_argument('--model_file_path', dest='model_file_path')
-parser.add_argument('--batch_size', dest='batch_size')
-parser.add_argument('--epochs', dest='epochs')
 _args = parser.parse_args()
-batch_size_arg = _args.batch_size or 256
-epochs_arg = _args.epochs or 10
 train_folder_path_arg = _args.train_folder_path
 valid_folder_path_arg = _args.valid_folder_path
 output_test_folder_path_arg = _args.output_test_folder_path
 max_train_files_arg = int(_args.max_train_files) or 15000
 mode_arg = _args.mode or "train"
 model_file_path_arg = _args.model_file_path
-trained_flag = 0
+
 print("train_folder_path_arg",train_folder_path_arg)
 print("valid_folder_path_arg",valid_folder_path_arg)
 print("output_test_folder_path_arg",output_test_folder_path_arg)
@@ -255,18 +251,18 @@ class TextRecognize(object):
 
     def train(self):
         print("train")
-
         filepath = self.model_file_path
-
+        checkpoint = ModelCheckpoint(filepath=filepath, monitor='val_loss', verbose=1, save_best_only=True) #, mode='auto')
+        callbacks_list = [checkpoint]
         # print(self.train_input_length)
         # print(self.train_label_length)
         # print(self.valid_input_length)
         # print(self.valid_label_length)
-        train_padded_txt = pad_sequences(self.train_text_array,
+        self.train_padded_txt = pad_sequences(self.train_text_array,
                                               maxlen=self.max_label_length,
                                               padding='post',
                                               value=len(char_list))
-        valid_padded_txt = pad_sequences(self.valid_text_array,
+        self.valid_padded_txt = pad_sequences(self.valid_text_array,
                                               maxlen=self.max_label_length,
                                               padding='post',
                                               value=len(char_list))
@@ -279,44 +275,24 @@ class TextRecognize(object):
         valid_img = np.array(self.valid_image_array)
         valid_input_length = np.array(self.valid_input_length)
         valid_label_length = np.array(self.valid_label_length)
-        batch_size = int(batch_size_arg)
-        epochs = int(epochs_arg)
+        batch_size = 256
+        epochs = 30
         # print(training_img)
 
-        if os.path.isfile(filepath):
-            
-        
-            checkpoint = ModelCheckpoint(filepath=filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
-            callbacks_list = [checkpoint]
-            self.model.fit(x=[training_img,
-                          train_padded_txt,
+        self.model.fit(x=[training_img,
+                          self.train_padded_txt,
                           train_input_length,
                           train_label_length],
                        y=np.zeros(len(training_img)),
                        batch_size=batch_size,
                        epochs=epochs,
                        validation_data=([valid_img,
-                                         valid_padded_txt,
+                                         self.valid_padded_txt,
                                          valid_input_length,
                                          valid_label_length],
                                         [np.zeros(len(valid_img))]),
                        verbose=1, callbacks=callbacks_list)
-        else:
-            self.model.fit(x=[training_img,
-                          train_padded_txt,
-                          train_input_length,
-                          train_label_length],
-                       y=np.zeros(len(training_img)),
-                       batch_size=batch_size,
-                       epochs=epochs,
-                       validation_data=([valid_img,
-                                         valid_padded_txt,
-                                         valid_input_length,
-                                         valid_label_length],
-                                        [np.zeros(len(valid_img))]),
-                       verbose=1)                    
-            self.model.save_weights(filepath)
-            self.train()
+
         return
 
     def predict(self):
