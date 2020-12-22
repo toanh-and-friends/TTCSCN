@@ -15,7 +15,7 @@ from keras.models import Model
 from keras.activations import relu, sigmoid, softmax
 import keras.backend as K
 from keras.utils import to_categorical
-from keras.callbacks import ModelCheckpoint
+from keras.callbacks import ModelCheckpoint, EarlyStopping
 
 char_list = string.ascii_letters + string.digits
 
@@ -34,7 +34,7 @@ epochs_arg = _args.epochs or 10
 train_folder_path_arg = _args.train_folder_path
 valid_folder_path_arg = _args.valid_folder_path
 output_test_folder_path_arg = _args.output_test_folder_path
-max_train_files_arg = int(_args.max_train_files) or 15000
+max_train_files_arg = int(_args.max_train_files or 15000 ) or 15000
 mode_arg = _args.mode or "train"
 model_file_path_arg = _args.model_file_path
 trained_flag = 0
@@ -285,7 +285,7 @@ class TextRecognize(object):
 
         if os.path.isfile(filepath):
             
-        
+            early_stopping = EarlyStopping(monitor='val_loss', patience=10)
             checkpoint = ModelCheckpoint(filepath=filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
             callbacks_list = [checkpoint]
             self.model.fit(x=[training_img,
