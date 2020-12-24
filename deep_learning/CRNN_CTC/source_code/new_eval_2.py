@@ -34,7 +34,7 @@ epochs_arg = _args.epochs or 10
 train_folder_path_arg = _args.train_folder_path
 valid_folder_path_arg = _args.valid_folder_path
 output_test_folder_path_arg = _args.output_test_folder_path
-max_train_files_arg = int(_args.max_train_files or 15000 ) or 15000
+max_train_files_arg = int(_args.max_train_files) or 15000
 mode_arg = _args.mode or "train"
 model_file_path_arg = _args.model_file_path
 trained_flag = 0
@@ -286,8 +286,8 @@ class TextRecognize(object):
         if os.path.isfile(filepath):
             
             early_stopping = EarlyStopping(monitor='val_loss', patience=10)
-            checkpoint = ModelCheckpoint(filepath=filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
-            callbacks_list = [checkpoint]
+            # checkpoint = ModelCheckpoint(filepath=filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
+            # callbacks_list = [checkpoint]
             self.model.fit(x=[training_img,
                           train_padded_txt,
                           train_input_length,
@@ -300,7 +300,7 @@ class TextRecognize(object):
                                          valid_input_length,
                                          valid_label_length],
                                         [np.zeros(len(valid_img))]),
-                       verbose=1, callbacks=callbacks_list)
+                       verbose=1, callbacks=[early_stopping])
         else:
             self.model.fit(x=[training_img,
                           train_padded_txt,
