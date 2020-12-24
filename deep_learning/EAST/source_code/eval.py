@@ -22,51 +22,8 @@ flags.DEFINE_string('output_dir', default='../datasets/ICDAR2015/test_data_outpu
 FLAGS = flags.FLAGS
 
 
-def get_images():
-    #   """
-    # find image files in test data path
-    # :return: list of files found
-    # """
-    files = []
-    exts = ['jpg', 'png', 'jpeg', 'JPG']
-    for parent, dirnames, filenames in os.walk(FLAGS.test_data_path):
-        for filename in filenames:
-            for ext in exts:
-                if filename.endswith(ext):
-                    files.append(os.path.join(parent, filename))
-                    break
-    print('Find {} images'.format(len(files)))
-    return files
 
 
-def resize_image(im, max_side_len=2400):
-    #   """
-    # resize image to a size multiple of 32 which is required by the network
-    # :param im: the resized image
-    # :param max_side_len: limit of max image size to avoid out of memory in gpu
-    # :return: the resized image and the resize ratio
-    # """
-    h, w, _ = im.shape
-
-    resize_w = w
-    resize_h = h
-
-    # limit the max side
-    if max(resize_h, resize_w) > max_side_len:
-        ratio = float(max_side_len) / resize_h if resize_h > resize_w else float(max_side_len) / resize_w
-    else:
-        ratio = 1.
-    resize_h = int(resize_h * ratio)
-    resize_w = int(resize_w * ratio)
-
-    resize_h = resize_h if resize_h % 32 == 0 else (resize_h // 32) * 32
-    resize_w = resize_w if resize_w % 32 == 0 else (resize_w // 32) * 32
-    im = cv2.resize(im, (int(resize_w), int(resize_h)))
-
-    ratio_h = resize_h / float(h)
-    ratio_w = resize_w / float(w)
-
-    return im, (ratio_h, ratio_w)
 
 
 def detect(score_map, geo_map, timer, score_map_thresh=0.8, box_thresh=0.1, nms_thres=0.2):
@@ -114,13 +71,7 @@ def detect(score_map, geo_map, timer, score_map_thresh=0.8, box_thresh=0.1, nms_
     return boxes, timer
 
 
-def sort_poly(p):
-    min_axis = np.argmin(np.sum(p, axis=1))
-    p = p[[min_axis, (min_axis + 1) % 4, (min_axis + 2) % 4, (min_axis + 3) % 4]]
-    if abs(p[0, 0] - p[1, 0]) > abs(p[0, 1] - p[1, 1]):
-        return p
-    else:
-        return p[[0, 3, 2, 1]]
+
 
 
 def main(_):
