@@ -15,9 +15,9 @@ from absl import app
 from absl import flags
 
 flags.DEFINE_string('gpu_num', default='1', help='gpu number to run')
-flags.DEFINE_string('test_data_path', default='./data/ICDAR2015/test_data', help='test data path')
-flags.DEFINE_string('model_path', default='./east_resnet_50_rbox/', help='trained model saved path')
-flags.DEFINE_string('output_dir', default='./data/ICDAR2015/test_data_output/', help='test data output path')
+flags.DEFINE_string('test_data_path', default='../datasets/ICDAR2015/test_data', help='test data path')
+flags.DEFINE_string('model_path', default='../models', help='trained model saved path')
+flags.DEFINE_string('output_dir', default='../datasets/ICDAR2015/test_data_output/', help='test data output path')
 
 FLAGS = flags.FLAGS
 
@@ -144,6 +144,8 @@ def main(_):
 
     img_list = get_images()
     for img_file in img_list:
+        print(img_file)
+        # for img_file in img_list:
         img = cv2.imread(img_file)[:, :, ::-1]
         start_time = time.time()
         img_resized, (ratio_h, ratio_w) = resize_image(img)
@@ -162,12 +164,12 @@ def main(_):
 
         print('{} : net {:.0f}ms, restore {:.0f}ms, nms {:.0f}ms'.format(
             img_file, timer['net'] * 1000, timer['restore'] * 1000, timer['nms'] * 1000))
-
+        #
         if boxes is not None:
             boxes = boxes[:, :8].reshape((-1, 4, 2))
             boxes[:, :, 0] /= ratio_w
             boxes[:, :, 1] /= ratio_h
-
+    #
         duration = time.time() - start_time
         print('[timing] {}'.format(duration))
 
@@ -182,6 +184,7 @@ def main(_):
                 for box in boxes:
                     # to avoid submitting errors
                     box = sort_poly(box.astype(np.int32))
+                    print(box)
                     if np.linalg.norm(box[0] - box[1]) < 5 or np.linalg.norm(box[3] - box[0]) < 5:
                         continue
                     f.write('{},{},{},{},{},{},{},{}\r\n'.format(

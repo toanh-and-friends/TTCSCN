@@ -10,7 +10,8 @@ from absl import flags
 
 flags.DEFINE_integer('input_size', default=512, help='input size for training of the network')
 flags.DEFINE_integer('batch_size', default=8, help='batch size for training')
-flags.DEFINE_integer('nb_workers', default=4, help='number of processes to spin up when using process based threading')  # as defined in
+flags.DEFINE_integer('nb_workers', default=4,
+                     help='number of processes to spin up when using process based threading')  # as defined in
 # https://keras.io/models/model/#fit_generator
 flags.DEFINE_float('init_learning_rate', default=0.0001, help='initial learning rate')
 flags.DEFINE_float('lr_decay_rate', default=0.94, help='decay rate for the learning rate')
