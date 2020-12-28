@@ -189,5 +189,5 @@ class TextDetection(object):
 
 
 td = TextDetection(test_data_path='../datasets/ICDAR2015/test_data', model_path='../models/',
-                   test_data_output_path='../datasets/ICDAR2015/test_data_output', gpu_num='1')
+                   test_data_output_path='../datasets/ICDAR2015/test_data_output', gpu_num='0')
 td.predict()
