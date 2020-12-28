@@ -9,6 +9,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 import argparse
+import time
 from keras.preprocessing.sequence import pad_sequences
 from keras.layers import Dense, LSTM, Reshape, BatchNormalization, Input, Conv2D, MaxPool2D, Lambda, Bidirectional
 from keras.models import Model
@@ -100,36 +101,51 @@ class TextRecognize(object):
             self.predict()
 
     def pre_process_image(self, file_path):
-        filename = ntpath.basename(file_path)
-        image = cv2.cvtColor(cv2.imread(file_path), cv2.COLOR_BGR2GRAY)
-        # convert each image of shape (32, 128, 1)
-        w, h = image.shape
-        if h > 128 or w > 32:
-            return
-        if w < 32:
-            add_zeros = np.ones((32 - w, h)) * 255
-            image = np.concatenate((image, add_zeros))
+        try: 
+            now = int(round(time.time() * 1000))
+            filename = ntpath.basename(file_path)
+            filename_split = filename.split('_')
+            text = "0"
+            if (len(filename_split) > 1): 
+                text = filename_split[1]
+            image = cv2.cvtColor(cv2.imread(file_path), cv2.COLOR_BGR2GRAY)
+            # cv2.imwrite("../datasets/output_test_data/{}-{}-gray.jpg".format(now,text), image)
+            # convert each image of shape (32, 128, 1)
+            # print(image)
+            w, h = image.shape
+            
+            # print(w,h)
+            if h > 128 or w > 32:
+                image = cv2.resize(image, (128,32), interpolation = cv2.INTER_AREA)
+                w, h = image.shape
+                # return
+            if w < 32:
+                add_zeros = np.ones((32 - w, h)) * 255
+                image = np.concatenate((image, add_zeros))
 
-        if h < 128:
-            add_zeros = np.ones((32, 128 - h)) * 255
-            image = np.concatenate((image, add_zeros), axis=1)
-        image = np.expand_dims(image, axis=2)
+            if h < 128:
+                add_zeros = np.ones((32, 128 - h)) * 255
+                image = np.concatenate((image, add_zeros), axis=1)
+            image = np.expand_dims(image, axis=2)
 
-        # Normalize each image
-        image = image / 255.
+            # Normalize each image
+            
+            
+            cv2.imwrite("../datasets/output_test_data/{}-{}.jpg".format(now,text), image)
+            # get the text from the image
 
-        # get the text from the image
-        text = filename.split('_')[1]
+            image = image / 255.
 
-        # compute maximum length of the text
-        if len(text) > self.max_label_length:
-            self.max_label_length = len(text)
-        # print(text, image)
-        # print(text)
-        return {
-            "text": text,
-            "image": image
-        }
+            # compute maximum length of the text
+            if len(text) > self.max_label_length:
+                self.max_label_length = len(text)
+            # print(text, image)
+            return {
+                "text": text,
+                "image": image
+            }
+        except Exception as e:
+            print({"error":e})
 
     def init_data(self):
         try:
@@ -176,15 +192,43 @@ class TextRecognize(object):
             if self.valid_folder_path:
                 path = path.format(self.valid_folder_path)
                 valid_files = glob.glob(path)
-                for valid_file in valid_files:
-                    preprocessed_image = self.pre_process_image(valid_file)
 
+                for index_valid_file in range(0, len(valid_files)):
+                    _valid_file = str(valid_files[index_valid_file])
+                    _valid_file_old = _valid_file
+                    # print(_valid_file)
+                    filename, file_extension = os.path.splitext(_valid_file)
+                    # print(filename,file_extension )
+                    if file_extension != '.jpg':
+                        # print("!= .jpg",_valid_file)
+                        image = cv2.imread(_valid_file)
+                        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                        _valid_file = '{}.jpg'.format(filename)
+                        cv2.imwrite(_valid_file, image, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+                        os.remove(_valid_file_old)
+                    preprocessed_image = self.pre_process_image(_valid_file)
                     if preprocessed_image:
+                        # print(_valid_file)
                         self.valid_origin_text_array.append(preprocessed_image["text"])
                         self.valid_label_length.append(len(preprocessed_image["text"]))
                         self.valid_input_length.append(31)
                         self.valid_image_array.append(preprocessed_image["image"])
-                        self.valid_text_array.append(encode_to_labels(preprocessed_image["text"] or ''))
+                        self.valid_text_array.append(encode_to_labels(preprocessed_image["text"] or ''))     
+                # for valid_file in valid_files:
+                #     _valid_file = str(valid_file)
+                #     filename, file_extension = os.path.splitext(_valid_file)
+                #     if file_extension != '.jpg':
+                #         image = cv2.imread(_valid_file)
+                #         valid_file = '{}.jpg'.format(filename)
+                #         cv2.imwrite(_valid_file, image, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+                        
+                #     preprocessed_image = self.pre_process_image(_valid_file)
+                #     if preprocessed_image:
+                #         self.valid_origin_text_array.append(preprocessed_image["text"])
+                #         self.valid_label_length.append(len(preprocessed_image["text"]))
+                #         self.valid_input_length.append(31)
+                #         self.valid_image_array.append(preprocessed_image["image"])
+                #         self.valid_text_array.append(encode_to_labels(preprocessed_image["text"] or ''))
 
         except:
             print("Unexpected error:", sys.exc_info()[0])
@@ -299,7 +343,7 @@ class TextRecognize(object):
         # predict outputs on validation images
         valid_img = np.array(self.valid_image_array)
 
-        prediction = self.act_model.predict(valid_img[:10])
+        prediction = self.act_model.predict(valid_img[0:len(valid_img)])
 
         # use CTC decoder
         out = K.get_value(K.ctc_decode(prediction,
@@ -327,9 +371,9 @@ class TextRecognize(object):
 
 
 tr = TextRecognize(train_folder_path="./" or None,
-                   valid_folder_path="./",
+                   valid_folder_path="../datasets/test_data/",
                    max_train_files=15000,
-                   mode="train",
-                   output_test_folder_path="./",
-                   model_file_path="./")
+                   mode="predict",
+                   output_test_folder_path="../datasets/output_test_data",
+                   model_file_path="../models/best_model_test.hdf5")
 predict_result = tr.predict()
