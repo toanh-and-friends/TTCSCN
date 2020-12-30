@@ -61,4 +61,4 @@ api.add_resource(TelegramBotController,'/webhook', '/webhook')
 TelegramBot.init_webhook(TELEGRAM_INIT_WEBHOOK_URL)
 
 if __name__ == '__main__':
-    app.run( host='0.0.0.0', port=8081)
+    app.run( host='0.0.0.0', port=8081, ssl_context='adhoc')
