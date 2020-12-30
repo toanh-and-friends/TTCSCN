@@ -1,3 +1,4 @@
+import logging
 import os
 
 import requests
@@ -13,6 +14,7 @@ from services.crnn_recognize.text_detect import TextRecognize
 from services.east_detect.cut_image import ImagesData
 from services.east_detect.new_predict import TextDetection
 
+logger = logging.getLogger("root")
 
 class TelegramBot:
     def __init__(self):
@@ -37,6 +39,7 @@ class TelegramBot:
 
     def action(self):
         success = None
+
         if self.incoming_message_photo is None:
             if self.incoming_message_text == '/help':
                 self.outgoing_message_text = 'Please post a image to text box. And wait few minutes, I will talk you something in image. '
@@ -55,10 +58,13 @@ class TelegramBot:
                                              '\n\nThanks for use my bot'.format(self.first_name, self.last_name)
                 success = self.send_message()
 
+            logger.info('Message: {}, Out going message: {}'.format(self.incoming_message_text, self.outgoing_message_text))
         else:
             data = self.__detect_image()
             self.outgoing_message_text = data
             success = self.send_message()
+
+            logger.info('Message: {}, Out going message: {}'.format('file', self.outgoing_message_text))
 
         return success
 
@@ -76,32 +82,39 @@ class TelegramBot:
             folder_detect_path = create_folder(Constants.CRNN_OUPUT_DATA_DIRECTORY, self.chat_id)
             foler_crop_img =  create_folder(Constants.CROP_OUTPUT_IMG_DIRECTORY, self.chat_id)
 
+            logger.info('file download: folder: {}, file: {} '.format(folder_path, file_path))
+
             td = TextDetection(test_data_path=folder_path,
                                model_path=Constants.EAST_MODEL_DIRECTORY,
                                test_data_output_path=folder_detect_path,
                                gpu_num='1')
             detected_file, detect_img = td.predict()
 
-            ig = ImagesData(output_folder_path=foler_crop_img,
+            logger.info('file detected: file txt: {}, file img: {} '.format(detected_file, detect_img))
+
+            img_data = ImagesData(output_folder_path=foler_crop_img,
                             image_file_path=detect_img,
                             data_image_file_path=detected_file)
-            ig.detect_baselines_crop_images()
+            img_data.detect_baselines_crop_images()
 
-            if status:
-                textRecognize = TextRecognize(
-                    None,
-                    valid_folder_path=foler_crop_img,
-                    max_train_files=0,
-                    mode=CrnnType.PREDICT,
-                    output_test_folder_path=Constants.CRNN_OUPUT_DATA_DIRECTORY,
-                    model_file_path=Constants.CRNN_MODEL_PATH
-                )
+            textRecognize = TextRecognize(
+                None,
+                valid_folder_path=foler_crop_img,
+                max_train_files=0,
+                mode=CrnnType.PREDICT,
+                output_test_folder_path=Constants.CRNN_OUPUT_DATA_DIRECTORY,
+                model_file_path=Constants.CRNN_MODEL_PATH
+            )
 
-                predict_result = textRecognize.predict()
 
-                return predict_result
+            predict_result = textRecognize.predict()
+
+            logger.info('file recognize: input folder: {}, result: {} '.format(foler_crop_img, predict_result))
+
+            return predict_result
         except Exception as e:
             ex = str(e)
+            logger.error(ex)
             return ex
 
     def __values_dir_to_string(self, dict):
@@ -152,6 +165,7 @@ class TelegramBot:
             is_success = True
         except Exception as e:
             ex = str(e)
+            logger.error(ex)
 
         return is_success, folder_path, ex, file_path
 
