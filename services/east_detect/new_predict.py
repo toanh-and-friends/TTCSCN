@@ -149,9 +149,6 @@ class TextDetection(object):
             # feed image into model
             score_map, geo_map = model.predict(img_resized[np.newaxis, :, :, :])
 
-            res_file = ''
-            img_path = ''
-
             timer['net'] = time.time() - start
 
             boxes, timer = detect(score_map=score_map, geo_map=geo_map, timer=timer)
@@ -189,9 +186,3 @@ class TextDetection(object):
 
             img_path = os.path.join(self.test_data_output_path, os.path.basename(img_file))
             cv2.imwrite(img_path, img[:, :, ::-1])
-
-            return res_file, img_path
-
-td = TextDetection(test_data_path='../datasets/ICDAR2015/test_data', model_path='../models//',
-                   test_data_output_path='../datasets/ICDAR2015/test_data_output', gpu_num='1')
-td.predict()

@@ -66,7 +66,7 @@ def gray(image_file_path):
     if not os.path.isfile(image_file_path):
         raise Exception('File not found @ %s' % image_file_path)
     img = cv2.cvtColor(cv2.imread(image_file_path), cv2.COLOR_BGR2GRAY)
-    new_image_file_path = 'gray_%s.jpeg' % (
+    new_image_file_path = 'gray_%s.jpg' % (
         os.path.splitext(os.path.basename(image_file_path))[0])
     cv2.imwrite(new_image_file_path, img)
     return {
@@ -113,7 +113,7 @@ class ImagesData(object):
         thresh = cv2.threshold(blurred, 200, 255, cv2.THRESH_BINARY)[1]
         thresh = cv2.erode(thresh, kernel2, iterations=2)
         thresh = cv2.dilate(thresh, kernel, iterations=1)
-        cv2.imwrite("step0.png", thresh)
+        cv2.imwrite("step0.jpg", thresh)
         # gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         # erode_image = cv2.erode(blank_image, kernel2, iterations=2)
         # dilate_image = cv2.dilate(erode_image, kernel, iterations=1)
@@ -164,7 +164,7 @@ class ImagesData(object):
             lines.append([])
             # enter your filtering here
             x, y, w, h = cv2.boundingRect(c)
-            frames.append([x,y,w,h])
+            frames.append([x, y, w, h])
 
         frames = sorted(frames , key=lambda k: [k[1], k[0]])
         for frame in frames:
@@ -189,7 +189,7 @@ class ImagesData(object):
             cv2.rectangle(thresh, (x, y), (x + w, y + h), (0, 255, 0), 1)
             line_index = line_index + 1
 
-        cv2.imwrite("step2.png", thresh)
+        cv2.imwrite("step2.jpg", thresh)
 
         for line_index in range(0, len(lines)):
             for item_index in range(0, len(lines[line_index])):
@@ -210,7 +210,7 @@ class ImagesData(object):
                 print("min_y, max_y, min_x, max_x ",[min_y, max_y, min_x, max_x])
                 cropped = image[min_y:max_y, min_x:max_x]
                 # cv2.imshow("cropped", cropped)
-                cv2.imwrite("{}/{}.png".format(self.output_folder_path, image_index), cropped)
+                cv2.imwrite("{}/{}.jpg".format(self.output_folder_path, image_index), cropped)
 
                 image_index = image_index + 1
 
@@ -258,8 +258,3 @@ class ImagesData(object):
 
     #         image_index = image_index + 1
 
-
-ig = ImagesData(output_folder_path='../datasets/ICDAR2015/test_data_output/10',
-                image_file_path='../datasets/ICDAR2015/test_data/10.jpg',
-                data_image_file_path='../datasets/ICDAR2015/test_data_output/10.txt')
-ig.detect_baselines_crop_images()
