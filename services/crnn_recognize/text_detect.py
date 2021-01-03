@@ -5,6 +5,7 @@ import glob
 import cv2
 import numpy as np
 import keras.backend as K
+import time
 
 from services.crnn_recognize.model_singleton.crnn_model_singleton import CrnnSingleton
 
@@ -59,36 +60,51 @@ class TextRecognize(object):
         self.model, self.act_model = CrnnSingleton.getModel()
 
     def pre_process_image(self, file_path):
-        filename = ntpath.basename(file_path)
-        image = cv2.cvtColor(cv2.imread(file_path), cv2.COLOR_BGR2GRAY)
-        # convert each image of shape (32, 128, 1)
-        w, h = image.shape
-        if h > 128 or w > 32:
-            return
-        if w < 32:
-            add_zeros = np.ones((32 - w, h)) * 255
-            image = np.concatenate((image, add_zeros))
-
-        if h < 128:
-            add_zeros = np.ones((32, 128 - h)) * 255
-            image = np.concatenate((image, add_zeros), axis=1)
-        image = np.expand_dims(image, axis=2)
-
-        # Normalize each image
-        image = image / 255.
-
-        # get the text from the image
-        text = filename.split('_')[1]
-
-        # compute maximum length of the text
-        if len(text) > self.max_label_length:
-            self.max_label_length = len(text)
-        # print(text, image)
-        # print(text)
-        return {
-            "text": text,
-            "image": image
-        }
+        try: 
+            now = int(round(time.time() * 1000))
+            filename = ntpath.basename(file_path)
+            filename_split = filename.split('_')
+            text = "0"
+            if (len(filename_split) > 1): 
+                text = filename_split[1]
+            image = cv2.cvtColor(cv2.imread(file_path), cv2.COLOR_BGR2GRAY)
+            # cv2.imwrite("../datasets/output_test_data/{}-{}-gray.jpg".format(now,text), image)
+            # convert each image of shape (32, 128, 1)
+            # print(image)
+            w, h = image.shape
+            
+            # print(w,h)
+            if h > 128 or w > 32:
+                image = cv2.resize(image, (128,32), interpolation = cv2.INTER_AREA)
+                w, h = image.shape
+                # return
+            if w < 32:
+                add_zeros = np.ones((32 - w, h)) * 255
+                image = np.concatenate((image, add_zeros))
+ 
+            if h < 128:
+                add_zeros = np.ones((32, 128 - h)) * 255
+                image = np.concatenate((image, add_zeros), axis=1)
+            image = np.expand_dims(image, axis=2)
+ 
+            # Normalize each image
+            
+            
+            cv2.imwrite("../datasets/output_test_data/{}-{}.jpg".format(now,text), image)
+            # get the text from the image
+ 
+            image = image / 255.
+ 
+            # compute maximum length of the text
+            if len(text) > self.max_label_length:
+                self.max_label_length = len(text)
+            # print(text, image)
+            return {
+                "text": text,
+                "image": image
+            }
+        except Exception as e:
+            print({"error":e})
 
     def init_data(self):
         try:
@@ -101,9 +117,11 @@ class TextRecognize(object):
                 path = path.format(self.valid_folder_path)
                 valid_files = glob.glob(path)
                 for valid_file in valid_files:
+                    print('preprocessed_image start ',valid_file) 
                     preprocessed_image = self.pre_process_image(valid_file)
-
+                    print('preprocessed_image end ',preprocessed_image)
                     if preprocessed_image:
+                        print(valid_file)
                         self.valid_origin_text_array.append(preprocessed_image["text"])
                         self.valid_label_length.append(len(preprocessed_image["text"]))
                         self.valid_input_length.append(31)

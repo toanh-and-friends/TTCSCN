@@ -4,7 +4,8 @@ import time
 import numpy as np
 import tensorflow as tf
 import lanms
-from services.east_detect.east_model import EAST_model
+
+from services.east_detect.model_singleton.east_model_singletion import EASTModel
 from services.east_detect.data_processor import restore_rectangle
 
 
@@ -124,7 +125,7 @@ class TextDetection(object):
                 raise
 
         # load trained model
-        model = EAST_model()
+        model = EASTModel.getModel()
 
         ckpt = tf.train.Checkpoint(step=tf.Variable(0), model=model)
         latest_ckpt = tf.train.latest_checkpoint(self.model_path)
@@ -186,7 +187,5 @@ class TextDetection(object):
 
             img_path = os.path.join(self.test_data_output_path, os.path.basename(img_file))
             cv2.imwrite(img_path, img[:, :, ::-1])
-
-td = TextDetection(test_data_path='../datasets/ICDAR2015/test_data', model_path='../models/',
-                   test_data_output_path='../datasets/ICDAR2015/test_data_output', gpu_num='0')
-td.predict()
+            
+            return res_file, img_path

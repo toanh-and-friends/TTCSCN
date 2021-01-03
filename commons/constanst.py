@@ -8,3 +8,5 @@ class Constants:
     EAST_VALID_FOLDER =  "./recource/EAST/datasets/valid_data/"
 
     CROP_OUTPUT_IMG_DIRECTORY = "./recource/CROPPED_IMAGE/output_file/"
+    
+    FILE_DOWNLOAD_DIRECTORY =  "./recource/DOWNLOAD_IMAGE/"

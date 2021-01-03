@@ -31,7 +31,7 @@ def create_folder(parrent_folder, folder_name):
 #Create (get) file path = folder_path/file_name_req_date_time.file_extention
 def create_file_path(folder_path, file_name_req, file_extention):
     file_name = create_file_name(file_name_req, file_extention)
-    file_path = folder_path + "/" + file_name
+    file_path = folder_path + file_name
     return file_path
 
 #Create (get) file name
@@ -42,3 +42,16 @@ def create_file_name(file_name_req, file_extention):
     file_name = date_time + '_' + str(file_name_req) + file_extention
 
     return file_name
+    
+
+def remove_child_o_dir(folder_path):
+    for filename in os.listdir(folder_path):
+        file_path = os.path.join(folder_path, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print('Failed to delete %s. Reason: %s' % (file_path, e))    
+  

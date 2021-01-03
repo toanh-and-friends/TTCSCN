@@ -9,6 +9,7 @@ from controllers.recogn_controller import TextRecognController
 from controllers.telegram_controller import TelegramBotController
 from services.bots.telegram_bot import TelegramBot
 from services.crnn_recognize.model_singleton.crnn_model_singleton import CrnnSingleton
+from services.east_detect.model_singleton.east_model_singletion import EASTModel
 
 app = Flask(__name__)
 api = Api(app, version='1.0', title='Detect API',
@@ -55,6 +56,7 @@ logging.config.dictConfig(dict_config)
 
 #model config
 CrnnSingleton.getModel()
+EASTModel.getModel()
 
 api.add_resource(TextRecognController,'/api/text-recognize','/api/text-recognize')
 api.add_resource(TelegramBotController,'/api/webhook', '/api/webhook')

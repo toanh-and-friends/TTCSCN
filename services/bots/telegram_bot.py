@@ -9,7 +9,7 @@ from commons.constanst import Constants
 from config import TELEGRAM_SEND_MESSAGE_URL, TELEGRAM_GET_PHOTO_INFO_URL, TELEGRAM_GET_PHOTO_DATA_URL
 import uuid
 
-from helpers.file_helpers import create_folder, create_file_name, create_file_path
+from helpers.file_helpers import create_folder, create_file_name, create_file_path, remove_child_o_dir
 from services.crnn_recognize.text_detect import TextRecognize
 from services.east_detect.cut_image import ImagesData
 from services.east_detect.new_predict import TextDetection
@@ -79,10 +79,13 @@ class TelegramBot:
 
         try:
             status, folder_path, ex, file_path = self.__download_image()
-            folder_detect_path = create_folder(Constants.CRNN_OUPUT_DATA_DIRECTORY, self.chat_id)
+            folder_detect_path = create_folder(Constants.EAST_OUTPUT_DATA_DIRECTORY, self.chat_id)
             foler_crop_img =  create_folder(Constants.CROP_OUTPUT_IMG_DIRECTORY, self.chat_id)
 
             logger.info('file download: folder: {}, file: {} '.format(folder_path, file_path))
+            print('file download: folder: {}, file: {} '.format(folder_path, file_path))
+
+            print('DETECT PROCESSS START WITH CLIENT ', self.chat_id)
 
             td = TextDetection(test_data_path=folder_path,
                                model_path=Constants.EAST_MODEL_DIRECTORY,
@@ -90,12 +93,22 @@ class TelegramBot:
                                gpu_num='1')
             detected_file, detect_img = td.predict()
 
+            print('DETECT PROCESSS END WITH CLIENT ', self.chat_id)
+
             logger.info('file detected: file txt: {}, file img: {} '.format(detected_file, detect_img))
+            print('file detected: file txt: {}, file img: {} '.format(detected_file, detect_img))
+
+            print('CROP PROCESSS START WITH CLIENT ', self.chat_id)
+
 
             img_data = ImagesData(output_folder_path=foler_crop_img,
                             image_file_path=detect_img,
                             data_image_file_path=detected_file)
             img_data.detect_baselines_crop_images()
+
+            print('CROP PROCESSS END WITH CLIENT ', self.chat_id)
+
+            print('RECOGNIZE PROCESSS START WITH CLIENT ', self.chat_id)
 
             textRecognize = TextRecognize(
                 None,
@@ -106,15 +119,27 @@ class TelegramBot:
                 model_file_path=Constants.CRNN_MODEL_PATH
             )
 
+            print('RECOGNIZE INIT PROCESSS END WITH CLIENT ', self.chat_id)
 
             predict_result = textRecognize.predict()
 
+            
+            print('RECOGNIZE PROCESSS END WITH CLIENT ', self.chat_id)
+
             logger.info('file recognize: input folder: {}, result: {} '.format(foler_crop_img, predict_result))
+            print('file recognize: input folder: {}, result: {} '.format(foler_crop_img, predict_result))
+
+
+            remove_child_o_dir(folder_detect_path)
+            remove_child_o_dir(foler_crop_img)
+            remove_child_o_dir(folder_path)
 
             return predict_result
         except Exception as e:
             ex = str(e)
             logger.error(ex)
+            print(ex)
+            
             return ex
 
     def __values_dir_to_string(self, dict):
@@ -138,20 +163,22 @@ class TelegramBot:
             file_data = requests.get(file_url)
 
             file_datas.append(file_data)
+            
+            break
 
         return file_datas
 
     #download file from reponse
     def __save_images(self, file_datas):
         file_path = ''
-        file_extention = ".png"
+        file_extention = ".jpg"
         is_success = False
         folder_path = ''
         file_index = 0
         ex = ''
 
         try:
-            folder_path = create_folder(Constants.CRNN_OUPUT_DATA_DIRECTORY, self.chat_id)
+            folder_path = create_folder(Constants.FILE_DOWNLOAD_DIRECTORY, self.chat_id)
             for file_data in file_datas:
                 file_index = file_index + 1
                 file_name = str(self.chat_id) + '_' + str(file_index)
