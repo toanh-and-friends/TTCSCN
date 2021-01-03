@@ -4,8 +4,8 @@ import time
 import numpy as np
 import tensorflow as tf
 import lanms
-from model import EAST_model
-from data_processor import restore_rectangle
+from services.east_detect.east_model import EAST_model
+from services.east_detect.data_processor import restore_rectangle
 
 
 def resize_image(im, max_side_len=2400):
@@ -186,3 +186,7 @@ class TextDetection(object):
 
             img_path = os.path.join(self.test_data_output_path, os.path.basename(img_file))
             cv2.imwrite(img_path, img[:, :, ::-1])
+
+td = TextDetection(test_data_path='../datasets/ICDAR2015/test_data', model_path='../models/',
+                   test_data_output_path='../datasets/ICDAR2015/test_data_output', gpu_num='0')
+td.predict()

@@ -1,4 +1,5 @@
 import logging
+import logging.config
 
 from flask import Flask
 from flask_restx import Api
@@ -56,7 +57,7 @@ logging.config.dictConfig(dict_config)
 CrnnSingleton.getModel()
 
 api.add_resource(TextRecognController,'/api/text-recognize','/api/text-recognize')
-api.add_resource(TelegramBotController,'/webhook', '/webhook')
+api.add_resource(TelegramBotController,'/api/webhook', '/api/webhook')
 
 TelegramBot.init_webhook(TELEGRAM_INIT_WEBHOOK_URL)
 
