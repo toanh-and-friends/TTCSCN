@@ -17,6 +17,7 @@ class EAST_model(tf.keras.Model):
   def __init__(self, input_size=512):
     super(EAST_model, self).__init__()
 
+  def __init_model(self, input_size=512):
     input_image = tf.keras.layers.Input(shape=(None, None, 3), name='input_image')
     overly_small_text_region_training_mask = tf.keras.layers.Input(shape=(None, None, 1), name='overly_small_text_region_training_mask')
     text_region_boundary_training_mask = tf.keras.layers.Input(shape=(None, None, 1), name='text_region_boundary_training_mask')
