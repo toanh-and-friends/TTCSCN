@@ -14,7 +14,7 @@ class EASTModel:
         if EASTModel.__east_model is None:
           EASTModel.__east_model = EAST_model()
 
-    east_model = copy.deepcopy(EASTModel.__east_model)
+    east_model = copy.copy(EASTModel.__east_model)
     east_model.model = keras.models.clone_model(EASTModel.__east_model.model)
 
     return east_model
